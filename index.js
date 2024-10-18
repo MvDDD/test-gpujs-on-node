@@ -2,35 +2,26 @@ let { GPU } = require("gpu.js");
 
 let gpu = new GPU();
 
-let k = gpu.createKernel(function(data) {
-    let val = data[this.thread.x]; // Get the value for this thread
-    let depth = 0; // Initialize depth
-    let result = 0; // Variable to accumulate results
+let k = gpu.createKernel(function() {
+    // Function to generate a pseudo-random number using a seed
+    function rnd(seed) {
+        // Random number generation algorithm using integer operations
+        seed = Math.abs(seed * 823576189) % 2147483647; // Ensure seed is positive and within int range
 
-    // Simulate recursion iteratively up to a maximum depth of 3
-    let maxDepth = 16;
-    let numBranches = 1; // Start with 1 branch
-
-    for (let i = 0; i < maxDepth - depth; i++) { // Loop to calculate 2^(3-depth)
-        numBranches *= 2; // Double the number of branches
-    }
-
-    for (let i = 0; i < numBranches; i++) { // Loop for the number of branches
-        let currentDepth = depth;
-        let currentVal = val;
-
-        // Traverse down to depth 3
-        while (currentDepth < maxDepth) {
-            currentVal += 1; // Increment value for the next depth
-            currentDepth++; // Increment depth
-        }
+        seed ^= (seed << 15) & 0xFFFFFFFF; // Use bitwise AND to keep within bounds
+        seed ^= (seed << 3) & 0xFFFFFFFF;  // Use bitwise AND to keep within bounds
+        seed ^= (seed >> 3); // Right shift is fine for signed integers
+        seed ^= (seed >> 5); // Right shift is fine for signed integers
         
-        // At depth 3, accumulate result
-        result += currentVal + 1;
+        return seed % 100000; // Return a pseudo-random number (e.g., in a specific range)
     }
+    
+    // Generate a pseudo-random value based on the thread's x-coordinate
+    let val = rnd(this.thread.x); 
 
-    return result - 1; // Return the accumulated result
-}).setOutput([2000]);
+    return val; // Return the random value
+}).setOutput([200000]); // Set the output size to 200,000
+
 
 // Generate random input data and run the kernel
-console.log(k(Array(2000).fill(0)));
+console.log(k());
